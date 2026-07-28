@@ -1,6 +1,8 @@
 import { CheckCircle2, ImageIcon, UploadIcon } from "lucide-react";
 import {
     useCallback,
+    useEffect,
+    useRef,
     useState,
     type ChangeEvent,
     type DragEvent,
@@ -16,20 +18,66 @@ interface UploadProps {
     onComplete?: (base64Data: string) => void;
 }
 
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png"];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
 const Upload = ({ onComplete }: UploadProps) => {
     const [file, setFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [base64Data, setBase64Data] = useState<string | null>(null);
     const { isSignedIn } = useOutletContext<AuthContext>();
+    const progressRef = useRef(0);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const clearUploadTimers = useCallback(() => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+
+        if (completionTimeoutRef.current) {
+            clearTimeout(completionTimeoutRef.current);
+            completionTimeoutRef.current = null;
+        }
+    }, []);
+
+    useEffect(() => clearUploadTimers, [clearUploadTimers]);
+
+    useEffect(() => {
+        if (progress !== 100 || !base64Data) {
+            return;
+        }
+
+        completionTimeoutRef.current = setTimeout(() => {
+            completionTimeoutRef.current = null;
+            onComplete?.(base64Data);
+        }, REDIRECT_DELAY_MS);
+
+        return () => {
+            if (completionTimeoutRef.current) {
+                clearTimeout(completionTimeoutRef.current);
+                completionTimeoutRef.current = null;
+            }
+        };
+    }, [base64Data, onComplete, progress]);
 
     const processFile = useCallback(
         (file: File) => {
-            if (!isSignedIn) {
+            if (
+                !isSignedIn ||
+                !ACCEPTED_IMAGE_TYPES.includes(file.type) ||
+                file.size > MAX_FILE_SIZE_BYTES
+            ) {
                 return;
             }
 
+            clearUploadTimers();
             setFile(file);
             setProgress(0);
+            setBase64Data(null);
+            progressRef.current = 0;
 
             const reader = new FileReader();
 
@@ -38,29 +86,25 @@ const Upload = ({ onComplete }: UploadProps) => {
                     return;
                 }
 
-                const base64Data = reader.result;
-                const interval = setInterval(() => {
-                    setProgress((previousProgress) => {
-                        const nextProgress = previousProgress + PROGRESS_INCREMENT;
+                setBase64Data(reader.result);
+                intervalRef.current = setInterval(() => {
+                    const nextProgress = Math.min(
+                        progressRef.current + PROGRESS_INCREMENT,
+                        100,
+                    );
 
-                        if (nextProgress >= 100) {
-                            clearInterval(interval);
-                            setTimeout(
-                                () => onComplete?.(base64Data),
-                                REDIRECT_DELAY_MS,
-                            );
+                    progressRef.current = nextProgress;
+                    setProgress(nextProgress);
 
-                            return 100;
-                        }
-
-                        return nextProgress;
-                    });
+                    if (nextProgress === 100) {
+                        clearUploadTimers();
+                    }
                 }, PROGRESS_INTERVAL_MS);
             };
 
             reader.readAsDataURL(file);
         },
-        [isSignedIn, onComplete],
+        [clearUploadTimers, isSignedIn],
     );
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -97,7 +141,7 @@ const Upload = ({ onComplete }: UploadProps) => {
 
         const droppedFile = event.dataTransfer.files[0];
 
-        if (droppedFile && droppedFile.type.startsWith("image/")) {
+        if (droppedFile) {
             processFile(droppedFile);
         }
     };
@@ -114,7 +158,7 @@ const Upload = ({ onComplete }: UploadProps) => {
                     <input
                         type="file"
                         className="drop-input"
-                        accept=".jpg,.jpeg,.png"
+                        accept="image/jpeg,image/png"
                         disabled={!isSignedIn}
                         onChange={handleChange}
                     />
@@ -128,7 +172,9 @@ const Upload = ({ onComplete }: UploadProps) => {
                                 ? "Click to upload or drag and drop"
                                 : "Sign in or sign up with Puter to upload"}
                         </p>
-                        <p className="help">Maximum file size 50MB.</p>
+                        <p className="help">
+                            Maximum file size {MAX_FILE_SIZE_BYTES / 1024 / 1024}MB.
+                        </p>
                     </div>
                 </div>
             ) : (

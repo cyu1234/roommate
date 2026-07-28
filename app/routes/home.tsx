@@ -4,6 +4,7 @@ import { ArrowRight, Layers, Clock, ArrowUpRight } from "lucide-react";
 import Button from "../../components/ui/Button"
 import Upload from "../../components/Upload";
 import { useNavigate } from "react-router";
+import { createProject } from "../../lib/puter.action";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -16,11 +17,16 @@ export default function Home() {
     const navigate = useNavigate();
 
     const handleUploadComplete = async (base64Image: string) => {
-      const newId = Date.now().toString()
+      try {
+        const project = await createProject(base64Image);
 
-      navigate(`/visualizer/${newId}`)
+        navigate(`/visualizer/${project.id}`);
 
-      return true;
+        return true;
+      } catch (error) {
+        console.error("Failed to create project:", error);
+        return false;
+      }
     }
 
   return (
