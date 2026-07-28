@@ -2,6 +2,9 @@ import type { Route } from "./+types/home";
 import Navbar from "../../components/Navbar";
 import { ArrowRight, Layers, Clock, ArrowUpRight } from "lucide-react";
 import Button from "../../components/ui/Button"
+import Upload from "../../components/Upload";
+import { useNavigate } from "react-router";
+import { createProject } from "../../lib/puter.action";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -11,6 +14,21 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+    const navigate = useNavigate();
+
+    const handleUploadComplete = async (base64Image: string) => {
+      try {
+        const project = await createProject(base64Image);
+
+        navigate(`/visualizer/${project.id}`);
+
+        return true;
+      } catch (error) {
+        console.error("Failed to create project:", error);
+        return false;
+      }
+    }
+
   return (
     <div className="home">
       <Navbar />
@@ -56,7 +74,9 @@ export default function Home() {
                   <p>Supports JPG, PNG, formats up to 10MB</p>
             </div>
 
-            <p>Upload images</p>
+            <Upload
+              onComplete={handleUploadComplete}
+            />
           </div>
         </div>
       </section>
