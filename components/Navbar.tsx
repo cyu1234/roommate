@@ -32,7 +32,7 @@ const Navbar = () => {
                         <Box className ="logo" />
 
                         <span className="name">
-                            Roomify
+                            Roommate
                         </span>
                     </div>
 
