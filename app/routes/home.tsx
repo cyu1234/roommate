@@ -35,12 +35,12 @@ export default function Home() {
           return false;
         }
 
-        setProjects((prev) => [newItem, ...prev])
+        setProjects((prev) => [{ ...newItem, ...saved }, ...prev])
 
         navigate(`/visualizer/${newId}`, {
           state: {
             initialImage: saved.sourceImage,
-            initialRendered: saved.renderedImage || null,
+            initialRender: saved.renderedImage || null,
             name
           }
         });
@@ -113,8 +113,8 @@ export default function Home() {
           </div>
 
           <div className="projects-grid">
-            {projects.map(({id, name, renderedImage, sourceImage, timestamp}) => (
-              <div className="project-card group">
+              {projects.map(({id, name, renderedImage, sourceImage, timestamp}) => (
+                <div key={id} className="project-card group">
               <div className="preview">
                 <img
                   src={renderedImage || sourceImage}
@@ -132,8 +132,7 @@ export default function Home() {
 
                   <div className="meta">
                     <Clock size={12} />
-                    <span>{new Date(timestamp).toLocaleDateString()
-                    }</span>
+                    <span>{new Date(timestamp).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
                     <span>By Colin</span>
                   </div>
                 </div>
