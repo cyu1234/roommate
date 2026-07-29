@@ -18,7 +18,7 @@ interface UploadProps {
     onComplete?: (base64Data: string) => void;
 }
 
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png"];
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 const Upload = ({ onComplete }: UploadProps) => {
