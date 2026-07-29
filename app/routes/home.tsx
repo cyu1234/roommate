@@ -74,7 +74,7 @@ export default function Home() {
               <div className="pulse"></div>
           </div>
 
-          <p>Introducting Rommate 2.0</p>
+          <p>Introducting Roommate</p>
         </div>
 
         <h1>Bring your interior ideas to life at the speed of thought</h1>
